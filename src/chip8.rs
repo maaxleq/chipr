@@ -23,26 +23,32 @@ fn merge_bytes(b1: u8, b2: u8) -> u16 {
     (b1 as u16) << 8 | b2 as u16
 }
 
+#[allow(dead_code)]
 fn merge_hex2(h1: u8, h2: u8) -> u8 {
     h1 << 4 | h2
 }
 
+#[allow(dead_code)]
 fn merge_hex3(h1: u8, h2: u8, h3: u8) -> u16 {
     ((h1 as u16) << 8) | ((h2 as u16) << 4) | h3 as u16
 }
 
+#[allow(dead_code)]
 fn bitmask1(instruction: u16) -> u16 {
     return instruction & 0xF000;
 }
 
+#[allow(dead_code)]
 fn bitmask2(instruction: u16) -> u16 {
     return instruction & 0x0F00;
 }
 
+#[allow(dead_code)]
 fn bitmask3(instruction: u16) -> u16 {
     return instruction & 0x00F0;
 }
 
+#[allow(dead_code)]
 fn bitmask4(instruction: u16) -> u16 {
     return instruction & 0x000F;
 }
@@ -152,6 +158,8 @@ pub struct VM {
     pub stack: Vec<u16>,
     pub delay_timer: Timer,
     pub sound_timer: Timer,
+    pub timer_delay: u32,
+    pub timer_counter: u32,
     pub screen: Screen,
     pub will_draw: bool,
     pub keys_pressed: Vec<u8>,
@@ -159,7 +167,7 @@ pub struct VM {
 }
 
 impl VM {
-    pub fn new() -> VM {
+    pub fn new_with_freq(freq: u32) -> VM {
         VM {
             memory: [0; 4096],
             registers: [0; 16],
@@ -171,8 +179,14 @@ impl VM {
             screen: Screen::new(),
             will_draw: true,
             keys_pressed: Vec::new(),
-            custom_info: Vec::new()
+            custom_info: Vec::new(),
+            timer_delay: freq / 60,
+            timer_counter: 0,
         }
+    }
+
+    pub fn new() -> VM {
+        VM::new_with_freq(500)
     }
 
     pub fn load_rom(&mut self, rom: [u8; 4096]) {
@@ -465,6 +479,15 @@ impl VM {
     }
 
     pub fn next(&mut self) -> u8 {
+        if self.timer_counter == self.timer_delay {
+            self.delay_timer.decrement();
+            self.sound_timer.decrement();
+
+            self.timer_counter = 0;
+        }
+
+        self.timer_counter += 1;
+
         let instruction = self.get_instruction();
         let new_pc = self.execute_instruction(instruction);
 

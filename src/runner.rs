@@ -90,8 +90,6 @@ pub struct Runner {
     vm: VM,
     ui_engine: ConsoleEngine,
     main_screen: screen::Screen,
-    timer_delay: u32,
-    timer_counter: u32,
     target_rate: u32,
     ips_timer: Instant,
     debug: bool,
@@ -101,7 +99,7 @@ pub struct Runner {
 
 impl Runner {
     pub fn new(rom_path: String, rate: u32, debug: bool) -> Runner {
-        let mut vm = VM::new();
+        let mut vm = VM::new_with_freq(rate);
         vm.load_rom(read_rom(rom_path));
         vm.init_font();
 
@@ -109,8 +107,6 @@ impl Runner {
             vm: vm,
             main_screen: screen::Screen::new(64, 32),
             ui_engine: ConsoleEngine::init(if debug { 80 } else { 64 }, if debug { 40 } else { 32 }, rate).unwrap(),
-            timer_delay: rate / 60,
-            timer_counter: 0,
             ips_timer: Instant::now(),
             debug: debug,
             target_rate: rate,
@@ -240,15 +236,6 @@ impl Runner {
 
             self.ui_engine.print_screen(0, 0, &self.main_screen);
             self.ui_engine.draw();
-
-            self.timer_counter += 1;
-
-            if self.timer_counter == self.timer_delay {
-                self.vm.delay_timer.decrement();
-                self.vm.sound_timer.decrement();
-
-                self.timer_counter = 0;
-            }
 
             if self.vm.next() == 0 {
                 break;
