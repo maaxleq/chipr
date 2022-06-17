@@ -56,7 +56,7 @@ fn main() {
         vm.dump_memory();
     }
     else if benchmark {
-        let mut vm = VM::new();
+        let mut vm = VM::new_with_freq(100_000_000);
         vm.load_rom(read_rom(filename));
         vm.init_font();
 

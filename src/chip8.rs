@@ -85,22 +85,6 @@ fn least_significant_bit(byte: u8) -> u8 {
     return byte & 0b00000001;
 }
 
-pub struct Timer {
-    pub time: u8,
-}
-
-impl Timer {
-    fn new() -> Timer {
-        Timer { time: 0 }
-    }
-
-    pub fn decrement(&mut self) {
-        if self.time > 0 {
-            self.time -= 1;
-        }
-    }
-}
-
 pub struct Screen {
     pub pixels: [[bool; 32]; 64],
 }
@@ -156,10 +140,10 @@ pub struct VM {
     pub pc: u16,
     pub i: u16,
     pub stack: Vec<u16>,
-    pub delay_timer: Timer,
-    pub sound_timer: Timer,
-    pub timer_delay: u32,
-    pub timer_counter: u32,
+    pub delay_timer: u8,
+    pub sound_timer: u8,
+    timer_delay: u32,
+    timer_counter: u32,
     pub screen: Screen,
     pub will_draw: bool,
     pub keys_pressed: Vec<u8>,
@@ -174,8 +158,8 @@ impl VM {
             pc: 512,
             i: 0,
             stack: Vec::new(),
-            delay_timer: Timer::new(),
-            sound_timer: Timer::new(),
+            delay_timer: 0,
+            sound_timer: 0,
             screen: Screen::new(),
             will_draw: true,
             keys_pressed: Vec::new(),
@@ -187,6 +171,11 @@ impl VM {
 
     pub fn new() -> VM {
         VM::new_with_freq(500)
+    }
+
+    #[allow(dead_code)]
+    pub fn set_frequency(&mut self, freq: u32) {
+        self.timer_delay = freq / 60;
     }
 
     pub fn load_rom(&mut self, rom: [u8; 4096]) {
@@ -409,7 +398,7 @@ impl VM {
             },
             0xF => match s_bitmask34(instruction) {
                 0x07 => {
-                    self.registers[s_bitmask2(instruction) as usize] = self.delay_timer.time;
+                    self.registers[s_bitmask2(instruction) as usize] = self.delay_timer;
                     return self.pc + 2;
                 }
                 0x0A => {
@@ -422,11 +411,11 @@ impl VM {
                     }
                 }
                 0x15 => {
-                    self.delay_timer.time = self.registers[s_bitmask2(instruction) as usize];
+                    self.delay_timer = self.registers[s_bitmask2(instruction) as usize];
                     return self.pc + 2;
                 }
                 0x18 => {
-                    self.sound_timer.time = self.registers[s_bitmask2(instruction) as usize];
+                    self.sound_timer = self.registers[s_bitmask2(instruction) as usize];
                     return self.pc + 2;
                 }
                 0x1E => {
@@ -480,8 +469,8 @@ impl VM {
 
     pub fn next(&mut self) -> u8 {
         if self.timer_counter == self.timer_delay {
-            self.delay_timer.decrement();
-            self.sound_timer.decrement();
+            self.delay_timer = self.delay_timer.saturating_sub(1);
+            self.sound_timer = self.sound_timer.saturating_sub(1);
 
             self.timer_counter = 0;
         }

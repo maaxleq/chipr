@@ -197,8 +197,8 @@ impl Runner {
         info.pc = self.vm.pc;
         info.i = self.vm.i;
         info.stack_size = self.vm.stack.len();
-        info.delay_timer = self.vm.delay_timer.time;
-        info.sound_timer = self.vm.sound_timer.time;
+        info.delay_timer = self.vm.delay_timer;
+        info.sound_timer = self.vm.sound_timer;
         info.registers = self.vm.registers.clone();
         info.current_instruction = self.vm.get_instruction();
         info.additional_info = self.vm.custom_info.clone();
