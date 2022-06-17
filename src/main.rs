@@ -1,6 +1,7 @@
 mod chip8;
 mod reader;
 mod runner;
+mod bench;
 
 use runner::*;
 use chip8::VM;
@@ -17,6 +18,7 @@ fn main() {
     let mut rate: u32 = 450;
     let mut debug = false;
     let mut dump = false;
+    let mut benchmark = false;
 
     for arg in args.iter().skip(1) {
         if arg.starts_with("rom=") {
@@ -34,6 +36,9 @@ fn main() {
         else if arg.eq("--dump"){
             dump = true;
         }
+        else if arg.eq("--benchmark"){
+            benchmark = true;
+        }
         else {
             panic!("{} {}", ARGUMENT_PARSE_ERROR, arg);
         }
@@ -49,6 +54,15 @@ fn main() {
         vm.init_font();
 
         vm.dump_memory();
+    }
+    else if benchmark {
+        let mut vm = VM::new_with_freq(100_000_000);
+        vm.load_rom(read_rom(filename));
+        vm.init_font();
+
+        let mut bench = bench::Bench::new(vm);
+        bench.test();
+        bench.print_results();
     }
     else {
         let mut runner = Runner::new(filename, rate, debug);

@@ -23,26 +23,32 @@ fn merge_bytes(b1: u8, b2: u8) -> u16 {
     (b1 as u16) << 8 | b2 as u16
 }
 
+#[allow(dead_code)]
 fn merge_hex2(h1: u8, h2: u8) -> u8 {
     h1 << 4 | h2
 }
 
+#[allow(dead_code)]
 fn merge_hex3(h1: u8, h2: u8, h3: u8) -> u16 {
     ((h1 as u16) << 8) | ((h2 as u16) << 4) | h3 as u16
 }
 
+#[allow(dead_code)]
 fn bitmask1(instruction: u16) -> u16 {
     return instruction & 0xF000;
 }
 
+#[allow(dead_code)]
 fn bitmask2(instruction: u16) -> u16 {
     return instruction & 0x0F00;
 }
 
+#[allow(dead_code)]
 fn bitmask3(instruction: u16) -> u16 {
     return instruction & 0x00F0;
 }
 
+#[allow(dead_code)]
 fn bitmask4(instruction: u16) -> u16 {
     return instruction & 0x000F;
 }
@@ -77,22 +83,6 @@ fn most_significant_bit(byte: u8) -> u8 {
 
 fn least_significant_bit(byte: u8) -> u8 {
     return byte & 0b00000001;
-}
-
-pub struct Timer {
-    pub time: u8,
-}
-
-impl Timer {
-    fn new() -> Timer {
-        Timer { time: 0 }
-    }
-
-    pub fn decrement(&mut self) {
-        if self.time > 0 {
-            self.time -= 1;
-        }
-    }
 }
 
 pub struct Screen {
@@ -150,8 +140,10 @@ pub struct VM {
     pub pc: u16,
     pub i: u16,
     pub stack: Vec<u16>,
-    pub delay_timer: Timer,
-    pub sound_timer: Timer,
+    pub delay_timer: u8,
+    pub sound_timer: u8,
+    timer_delay: u32,
+    timer_counter: u32,
     pub screen: Screen,
     pub will_draw: bool,
     pub keys_pressed: Vec<u8>,
@@ -159,20 +151,31 @@ pub struct VM {
 }
 
 impl VM {
-    pub fn new() -> VM {
+    pub fn new_with_freq(freq: u32) -> VM {
         VM {
             memory: [0; 4096],
             registers: [0; 16],
             pc: 512,
             i: 0,
             stack: Vec::new(),
-            delay_timer: Timer::new(),
-            sound_timer: Timer::new(),
+            delay_timer: 0,
+            sound_timer: 0,
             screen: Screen::new(),
             will_draw: true,
             keys_pressed: Vec::new(),
-            custom_info: Vec::new()
+            custom_info: Vec::new(),
+            timer_delay: freq / 60,
+            timer_counter: 0,
         }
+    }
+
+    pub fn new() -> VM {
+        VM::new_with_freq(500)
+    }
+
+    #[allow(dead_code)]
+    pub fn set_frequency(&mut self, freq: u32) {
+        self.timer_delay = freq / 60;
     }
 
     pub fn load_rom(&mut self, rom: [u8; 4096]) {
@@ -395,7 +398,7 @@ impl VM {
             },
             0xF => match s_bitmask34(instruction) {
                 0x07 => {
-                    self.registers[s_bitmask2(instruction) as usize] = self.delay_timer.time;
+                    self.registers[s_bitmask2(instruction) as usize] = self.delay_timer;
                     return self.pc + 2;
                 }
                 0x0A => {
@@ -408,11 +411,11 @@ impl VM {
                     }
                 }
                 0x15 => {
-                    self.delay_timer.time = self.registers[s_bitmask2(instruction) as usize];
+                    self.delay_timer = self.registers[s_bitmask2(instruction) as usize];
                     return self.pc + 2;
                 }
                 0x18 => {
-                    self.sound_timer.time = self.registers[s_bitmask2(instruction) as usize];
+                    self.sound_timer = self.registers[s_bitmask2(instruction) as usize];
                     return self.pc + 2;
                 }
                 0x1E => {
@@ -465,6 +468,15 @@ impl VM {
     }
 
     pub fn next(&mut self) -> u8 {
+        if self.timer_counter == self.timer_delay {
+            self.delay_timer = self.delay_timer.saturating_sub(1);
+            self.sound_timer = self.sound_timer.saturating_sub(1);
+
+            self.timer_counter = 0;
+        }
+
+        self.timer_counter += 1;
+
         let instruction = self.get_instruction();
         let new_pc = self.execute_instruction(instruction);
 
