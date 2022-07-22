@@ -3,6 +3,7 @@ mod reader;
 mod runner;
 mod bench;
 
+use macroquad::{prelude::Conf, miniquad::conf::Platform};
 use runner::*;
 use chip8::VM;
 use reader::*;
@@ -11,12 +12,26 @@ use std::env;
 static ARGUMENT_PARSE_ERROR: &str = "Could not parse argument";
 static NO_INPUT_FILE_ERROR: &str = "No input file provided";
 
-fn main() {
+fn create_conf() -> Conf {
+    Conf {
+        window_title: String::from("Chipr"),
+        window_resizable: false,
+        window_height: 256,
+        window_width: 512,
+        high_dpi: false,
+        fullscreen: false,
+        sample_count: 1,
+        icon: None,
+        platform: Platform::default()
+    }
+}
+
+#[macroquad::main(create_conf)]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
 
     let mut filename = String::new();
     let mut rate: u32 = 450;
-    let mut debug = false;
     let mut dump = false;
     let mut benchmark = false;
 
@@ -29,9 +44,6 @@ fn main() {
             .parse::<usize>()
             .expect(&format!("{} {}", ARGUMENT_PARSE_ERROR, arg));
             rate = n as u32;
-        }
-        else if arg.eq("--debug"){
-            debug = true;
         }
         else if arg.eq("--dump"){
             dump = true;
@@ -65,7 +77,8 @@ fn main() {
         bench.print_results();
     }
     else {
-        let mut runner = Runner::new(filename, rate, debug);
-        runner.run();
+        create_vm_and_start(filename, rate).await;
     }
+
+    Ok(())
 }
