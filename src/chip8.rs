@@ -221,10 +221,6 @@ impl VM {
         return sprite;
     }
 
-    fn clean(&mut self) {
-        self.keys_pressed.clear();
-    }
-
     fn execute_instruction(&mut self, instruction: u16) -> u16 {
         match s_bitmask1(instruction) {
             0x0 => match instruction {
@@ -485,9 +481,6 @@ impl VM {
         }
 
         self.pc = new_pc;
-        self.clean();
-
-        self.will_draw = true;
 
         return 1;
     }

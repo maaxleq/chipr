@@ -8,3 +8,5 @@ edition = "2018"
 [dependencies]
 console_engine = "2.0.2"
 fastrand = "1.5.0"
+ticker = "0.1.1"
+macroquad = "0.3.23"
